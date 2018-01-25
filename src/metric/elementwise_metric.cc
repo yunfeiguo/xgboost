@@ -98,6 +98,27 @@ struct EvalLogLoss : public EvalEWiseBase<EvalLogLoss> {
   }
 };
 
+struct EvalRaadLogLoss : public EvalEWiseBase<EvalRaadLogLoss> {
+  const char *Name() const override {
+    return "raadlogloss";
+  }
+  inline bst_float EvalRow(bst_float y, bst_float py) const {
+    const bst_float eps = 1e-2f;
+    const bst_float pneg = 1.0f - py;
+    if (py == 1.0f && y == 1.0f) {
+	return 0.0f;
+    } else if (py == 0.0f && y == 0.0f) {
+	return 0.0f;
+    } else if (py < eps && y == 1.0f) {
+      return 7.0f;
+    } else if (pneg < eps && y == 0.0f) {
+      return 7.0f;
+    } else {
+      return -y * std::log(py) - (1.0f - y) * std::log(pneg);
+    }
+  }
+};
+
 struct EvalError : public EvalEWiseBase<EvalError> {
   explicit EvalError(const char* param) {
     if (param != nullptr) {
@@ -198,6 +219,10 @@ XGBOOST_REGISTER_METRIC(MAE, "mae")
 XGBOOST_REGISTER_METRIC(LogLoss, "logloss")
 .describe("Negative loglikelihood for logistic regression.")
 .set_body([](const char* param) { return new EvalLogLoss(); });
+
+XGBOOST_REGISTER_METRIC(RaadLogLoss, "raadlogloss")
+.describe("Negative loglikelihood for logistic regression (using RAAD challenge rules).")
+.set_body([](const char* param) { return new EvalRaadLogLoss(); });
 
 XGBOOST_REGISTER_METRIC(Error, "error")
 .describe("Binary classification error.")
